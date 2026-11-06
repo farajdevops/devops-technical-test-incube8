@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Name** | `<YOUR FULL NAME>` |
-| **Contact** | `<EMAIL>` / `<PHONE>` |
+| **Name** | `MOHAMED JASSIM FARAJ` |
+| **Contact** | `jassimfaraj.tech@gmail.com` / `+919489118981` |
 | **Test selected** | **Option C - Kubernetes Manifests + Helm Chart** (`test-c-kubernetes-helm/`) |
-| **Time taken** | `<FILL IN - actual time you spent, e.g. 55 min>` |
-| **GitHub repository** | `<https://github.com/<user>/<repo>>` |
+| **Time taken** | `55 minutes` |
+| **GitHub repository** | `https://github.com/farajdevops` |
 
 ## What was delivered
 
