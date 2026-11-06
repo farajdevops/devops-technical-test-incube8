@@ -44,4 +44,3 @@ jobs:
           ! grep -q "kind: Secret" /tmp/prod.yaml
           ! grep -q "^  replicas:" /tmp/prod.yaml
 
-EOF
