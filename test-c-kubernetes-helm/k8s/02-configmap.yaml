@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-api-config
+  namespace: auth-api
+  labels:
+    app.kubernetes.io/name: auth-api
+data:
+  # Application config (JSON). Mounted read-only at /app/config/config.json.
+  # Non-secret values only - credentials live in the Secret.
+  config.json: |
+    {
+      "server": {
+        "port": 3000,
+        "shutdownTimeoutMs": 20000
+      },
+      "auth": {
+        "tokenTtlSeconds": 900,
+        "refreshTokenTtlSeconds": 604800,
+        "passwordMinLength": 12
+      },
+      "session": {
+        "cachePrefix": "auth:session:",
+        "ttlSeconds": 3600
+      },
+      "cors": {
+        "allowedOrigins": ["https://app.example.com"]
+      },
+      "rateLimit": {
+        "enabled": true,
+        "windowSeconds": 60,
+        "maxRequests": 600
+      }
+    }

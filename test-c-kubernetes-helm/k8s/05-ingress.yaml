@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth-api
+  namespace: auth-api
+  labels:
+    app.kubernetes.io/name: auth-api
+  annotations:
+    # --- cert-manager: issues/renews the TLS certificate into the Secret below.
+    # AWS ACM *public* certificates cannot be exported, so cert-manager talks to
+    # AWS through the aws-privateca-issuer plugin (ACM Private CA). Swap these
+    # three lines for a plain ClusterIssuer (e.g. letsencrypt) if preferred.
+    cert-manager.io/issuer: aws-pca-issuer
+    cert-manager.io/issuer-kind: AWSPCAClusterIssuer
+    cert-manager.io/issuer-group: awspca.cert-manager.io
+
+    # --- HTTP -> HTTPS redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # --- Rate limiting: 100 requests/second per client IP
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
+
+    # --- CORS: only the web app origin may call the API from a browser
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.example.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "600"
+
+    # --- Misc hardening
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - auth-api.example.com
+      secretName: auth-api-tls
+  rules:
+    - host: auth-api.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-api
+                port:
+                  name: http

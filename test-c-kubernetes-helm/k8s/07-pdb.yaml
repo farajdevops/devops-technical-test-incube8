@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: auth-api
+  namespace: auth-api
+  labels:
+    app.kubernetes.io/name: auth-api
+spec:
+  # Voluntary disruptions (node drain, cluster upgrade) can never take the
+  # service below 2 ready pods.
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: auth-api
