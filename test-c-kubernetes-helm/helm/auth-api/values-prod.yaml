@@ -1,0 +1,28 @@
+# Production: full requirements. Secret managed outside Helm. Pin an immutable image tag in CI:
+#   helm upgrade --install ... -f values-prod.yaml --set image.tag=v1.2.3
+replicaCount: 3
+
+env:
+  LOG_LEVEL: info
+  NODE_ENV: production
+
+secret:
+  create: false
+  existingSecret: auth-api-secrets
+
+autoscaling:
+  minReplicas: 3
+  maxReplicas: 20
+
+pdb:
+  minAvailable: 2
+
+topologySpread:
+  whenUnsatisfiable: ScheduleAnyway
+
+ingress:
+  host: auth-api.example.com
+
+networkPolicy:
+  rdsCidrs: ["10.0.20.0/24"]
+  elasticacheCidrs: ["10.0.30.0/24"]

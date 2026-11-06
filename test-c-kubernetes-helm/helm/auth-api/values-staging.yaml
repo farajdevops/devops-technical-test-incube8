@@ -1,0 +1,28 @@
+# Staging: production-shaped, smaller ceiling. Secret managed outside Helm.
+replicaCount: 3
+
+env:
+  LOG_LEVEL: info
+  NODE_ENV: production
+
+secret:
+  create: false
+  existingSecret: auth-api-secrets
+
+appConfig:
+  cors:
+    allowedOrigins:
+      - https://app.staging.example.com
+
+autoscaling:
+  minReplicas: 3
+  maxReplicas: 6
+
+ingress:
+  host: auth-api.staging.example.com
+  cors:
+    allowOrigin: https://app.staging.example.com
+
+networkPolicy:
+  rdsCidrs: ["10.20.20.0/24"]
+  elasticacheCidrs: ["10.20.30.0/24"]

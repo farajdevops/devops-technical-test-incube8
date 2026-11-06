@@ -1,0 +1,179 @@
+# Default values = production-grade baseline from the requirements.
+# Per-environment differences live in values-dev.yaml / values-staging.yaml / values-prod.yaml.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: 123456789012.dkr.ecr.us-west-2.amazonaws.com/auth-api
+  tag: ""                 # empty -> Chart.appVersion (v1.2.3). Override in CI: --set image.tag=$GIT_SHA
+  pullPolicy: IfNotPresent
+
+# Used when autoscaling is disabled; also the HPA minimum when autoscaling.minReplicas is unset.
+replicaCount: 3
+revisionHistoryLimit: 5
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}         # e.g. eks.amazonaws.com/role-arn: arn:aws:iam::<acct>:role/auth-api
+
+# ---------------------------------------------------------------- environment
+env:
+  LOG_LEVEL: info
+  NODE_ENV: production
+# Any extra container env entries (full Kubernetes env syntax)
+extraEnv: []
+
+# --------------------------------------------------------------------- secrets
+# DATABASE_URL and REDIS_URL are always read from a Secret (never from plain env).
+secret:
+  # false (staging/prod): use a Secret you manage out-of-band (kubectl, External Secrets, Sealed Secrets)
+  existingSecret: auth-api-secrets
+  # true (dev only): let the chart create the Secret from the values below
+  create: false
+  databaseUrl: ""
+  redisUrl: ""
+
+# ------------------------------------------------------- application config JSON
+appConfig:
+  server:
+    port: 3000
+    shutdownTimeoutMs: 20000
+  auth:
+    tokenTtlSeconds: 900
+    refreshTokenTtlSeconds: 604800
+    passwordMinLength: 12
+  session:
+    cachePrefix: "auth:session:"
+    ttlSeconds: 3600
+  cors:
+    allowedOrigins:
+      - https://app.example.com
+  rateLimit:
+    enabled: true
+    windowSeconds: 60
+    maxRequests: 600
+
+# -------------------------------------------------------------------- resources
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# ------------------------------------------------------------------ deployment
+rollingUpdate:
+  maxSurge: 1
+  maxUnavailable: 0
+
+terminationGracePeriodSeconds: 30
+preStopSleepSeconds: 10   # lets the ingress stop routing before SIGTERM; must be < terminationGracePeriodSeconds
+
+probes:
+  startup:
+    path: /health/startup
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 30
+  liveness:
+    path: /health/live
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readiness:
+    path: /health/ready
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  whenUnsatisfiable: ScheduleAnyway
+  topologyKeys:
+    - topology.kubernetes.io/zone
+    - kubernetes.io/hostname
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# --------------------------------------------------------------------- service
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+# --------------------------------------------------------------------- ingress
+ingress:
+  enabled: true
+  className: nginx
+  host: auth-api.example.com
+  sslRedirect: true
+  proxyBodySize: 1m
+  rateLimit:
+    rps: 100                # requests per second per client IP
+    burstMultiplier: 3
+  cors:
+    enabled: true
+    allowOrigin: https://app.example.com
+    allowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    allowHeaders: "Authorization, Content-Type, X-Requested-With"
+    allowCredentials: true
+    maxAge: 600
+  tls:
+    enabled: true
+    secretName: auth-api-tls
+  # cert-manager issues the certificate into tls.secretName. ACM public certs are not
+  # exportable, so the issuer is the AWS Private CA plugin (aws-privateca-issuer).
+  certManager:
+    enabled: true
+    issuer: aws-pca-issuer
+    issuerKind: AWSPCAClusterIssuer
+    issuerGroup: awspca.cert-manager.io
+  annotations: {}           # any extra ingress annotations
+
+# ----------------------------------------------------------------- autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  scaleUpStabilizationSeconds: 60
+  scaleDownStabilizationSeconds: 300
+
+# ------------------------------------------------------ disruption + networking
+pdb:
+  enabled: true
+  minAvailable: 2
+
+networkPolicy:
+  enabled: true
+  ingressNamespace: ingress-nginx
+  ingressControllerLabels:
+    app.kubernetes.io/name: ingress-nginx
+  # Subnet CIDRs of the RDS / ElastiCache instances. MUST be set per environment.
+  rdsCidrs: []
+  elasticacheCidrs: []
+  postgresPort: 5432
+  redisPort: 6379

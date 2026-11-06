@@ -1,0 +1,41 @@
+# Dev: small + cheap, chart creates a placeholder Secret. Never use these credentials elsewhere.
+replicaCount: 2
+
+env:
+  LOG_LEVEL: debug
+  NODE_ENV: development
+
+secret:
+  create: true
+  existingSecret: ""
+  databaseUrl: postgresql://user:password@rds-dev-endpoint:5432/authdb
+  redisUrl: redis://default:password@elasticache-dev-endpoint:6379
+
+appConfig:
+  cors:
+    allowedOrigins:
+      - https://app.dev.example.com
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 4
+
+pdb:
+  minAvailable: 1
+
+ingress:
+  host: auth-api.dev.example.com
+  cors:
+    allowOrigin: https://app.dev.example.com
+
+networkPolicy:
+  rdsCidrs: ["10.10.20.0/24"]
+  elasticacheCidrs: ["10.10.30.0/24"]

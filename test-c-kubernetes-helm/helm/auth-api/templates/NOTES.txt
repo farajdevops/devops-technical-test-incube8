@@ -1,0 +1,12 @@
+auth-api {{ .Values.image.tag | default .Chart.AppVersion }} deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+{{- if .Values.ingress.enabled }}
+
+URL:   https://{{ .Values.ingress.host }}
+Check: curl -i https://{{ .Values.ingress.host }}/health/live
+{{- end }}
+
+Watch the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "auth-api.fullname" . }}
+Roll back:
+  helm rollback {{ .Release.Name }} -n {{ .Release.Namespace }}

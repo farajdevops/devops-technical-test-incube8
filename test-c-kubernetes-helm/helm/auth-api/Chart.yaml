@@ -1,0 +1,10 @@
+apiVersion: v2
+name: auth-api
+description: Authentication/authorization REST API (Node.js) for EKS - Deployment, Service, Ingress, HPA, PDB, NetworkPolicy, ConfigMap and optional Secret
+type: application
+version: 1.0.0          # chart version - bump on every chart change
+appVersion: "v1.2.3"    # default image tag (override with --set image.tag=...)
+kubeVersion: ">=1.25.0-0"
+keywords: [auth, api, eks]
+maintainers:
+  - name: DevOps
